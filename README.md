@@ -18,9 +18,6 @@
 - 기존의 download, upload 부분의 Ceph 어뎁터를 파일 시스템 기반 어뎁터로 변경
 - Parcel Id <-> File path mapping
 - SQLite3 -> Mariadb
-- Parcel metadata 정하기
-    - File name, File hash, desc, ext, cateogry, created date, owner
-    - ...
 
 #### Upload? Register?
 ```javascript
@@ -33,6 +30,7 @@
 }
 ```
 
+#### Filesystem metadata
 | Index       | Data type     |
 |:-----------:|:-------------:|
 | owner       | char(40)      |
@@ -43,13 +41,20 @@
 
 `GET /api/v1/parcels/<parcel_id>`
 
-NGINX 파일 스트림 리턴
-
-
-
 ### Data watcher
 - File watcher 사용
 - 감지되면 Parcel Id 생성 후 AMO storage에 upload(Parcel meta만 등록?)
 ### Request watcher
 - 주기적으로 AMO Explorer에 Grant되지 않은 Request Tx 요청
 - 감지되면 Grant Tx 전송
+
+### TODO
+
+- 대용량 파일 업로드/다운로드 처리
+- 파일 저장 폴더 구조
+- 파일 이름 규칙
+- 파일 압축 전송 (e.g. GZIP, br, ...)
+    - 다중 업로드/다운로드
+- 추가된 메타데이터로 parcel 검색
+- 제로 카피 고려
+- ...
