@@ -3,11 +3,9 @@ import os
 import time
 
 import requests
-from Crypto.Cipher import AES
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import ECC
 from Crypto.Random import get_random_bytes
-from Crypto.Signature import DSS
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
@@ -25,20 +23,13 @@ class ParcelWatcher(FileSystemEventHandler):
         parcel_name = os.path.basename(src_path)
         parcel_path = os.path.dirname(src_path)
 
+        # TODO https://github.com/amolabs/docs/blob/master/protocol.md#key-custody
         key = get_random_bytes(32)
-        cipher = AES.new(key, AES.MODE_CTR)
-        encrypted_data = ""
-        with open(src_path, 'rb') as f:
-            buf = f.read(4096)
-            while len(buf) is not 0:
-                encrypted_data += cipher.encrypt(buf).hex()[2:]
-                buf = f.read(4096)
-
-        custody = DSS.new(key=self.public_key, mode='fips-186-3').sign(key)
+        custody = ""
 
         # TODO AUTH
         res = requests.post(
-            "http://localhost:5000/api/v1/parcels",
+            "{}/api/v1/parcels".format(self.endpoint),
             json={
                 "owner": self.owner,
                 "metadata": {
@@ -46,7 +37,7 @@ class ParcelWatcher(FileSystemEventHandler):
                     "name": parcel_name,
                     "path": parcel_path
                 },
-                "data": encrypted_data
+                "data": "AA"
             }
         )
 
@@ -87,8 +78,6 @@ class ParcelWatcher(FileSystemEventHandler):
         if event.src_path.split('/')[-1].startswith('.'):
             return
 
-        parcel_id = ""
-        custody = ""
         try:
             (parcel_id, custody) = self._upload_parcel(event.src_path)
         except requests.HTTPError:
@@ -98,7 +87,7 @@ class ParcelWatcher(FileSystemEventHandler):
 
 
 if __name__ == '__main__':
-    event_handler = ParcelWatcher()
+    event_handler = ParcelWatcher("")
     observer = Observer()
     observer.schedule(event_handler, path='/data/parcels/', recursive=False)
     observer.start()
