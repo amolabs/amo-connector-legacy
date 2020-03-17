@@ -1,6 +1,10 @@
 import flask
 from flask_restful import reqparse, Resource, Api
 from Crypto.Hash import SHA256
+from Crypto.PublicKey import ECC
+
+private_key = ECC.generate(curve="P-256")
+public_key = private_key.public_key()
 
 
 class MockStorage(Resource):
