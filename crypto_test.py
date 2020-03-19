@@ -13,4 +13,4 @@ class CryptoTest(unittest.TestCase):
         encrypted = public_key_encrypt(self.public_key, plain)
         decrypted = public_key_decrypt(self.private_key, encrypted)
 
-        assert plain == decrypted
+        self.assertEqual(plain, decrypted)

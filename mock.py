@@ -1,14 +1,21 @@
-import flask
+from flask import Flask, jsonify
 from flask_restful import reqparse, Resource, Api
-from Crypto.Hash import SHA256
-from Crypto.PublicKey import ECC
+from ecdsa.util import sha256
 
-private_key = ECC.generate(curve="P-256")
-public_key = private_key.public_key()
+
+class MockAuth(Resource):
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('user')
+        parser.add_argument('operation')
+
+        args = parser.parse_args()
+
+        if args['operation']['name'] != 'upload':
+            return jsonify({}), 403
 
 
 class MockStorage(Resource):
-
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('owner', type=str, required=True)
@@ -17,18 +24,14 @@ class MockStorage(Resource):
 
         args = parser.parse_args()
 
-        hasher = SHA256.new(bytes.fromhex(args['data']))
-        hasher.update(args['metadata']['path'].encode())
-        hasher.update(args['metadata']['name'].encode())
-
-        parcel_id = hasher.digest().hex()
+        digested = sha256(args['data']).hexdigest()
 
         return {
-            'id': parcel_id,
+            'id': 'aabbccddeeff',
         }
 
 
-app = flask.Flask("MockStorage")
+app = Flask("MockStorage")
 api = Api(app)
 api.add_resource(MockStorage, '/api/v1/parcels')
 
