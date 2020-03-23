@@ -25,10 +25,10 @@ class CephService:
         return self.client.list_objects_v2(Bucket=self.bucket_name, Prefix=Prefix, Delimiter=Delimiter, MaxKeys=MaxKeys)
 
     def _init_directory(self):
-        work_stake: [(str, int)] = [(self.root_path, 0)]
+        work_stack: [(str, int)] = [(self.root_path, 0)]
 
-        while len(work_stake) > 0:
-            prefix, level = work_stake.pop()
+        while len(work_stack) > 0:
+            prefix, level = work_stack.pop()
 
             if level == self.dir_level:
                 if not self.redis.get(prefix.encode()):
@@ -38,7 +38,7 @@ class CephService:
             req = self.list_objects_v2(prefix, '/')
 
             for e in req.get('CommonPrefixes', []):
-                work_stake.append((e['Prefix'], level + 1))
+                work_stack.append((e['Prefix'], level + 1))
 
     def scan_not_uploaded_dir(self):
         not_uploaded = []
