@@ -1,5 +1,6 @@
 import json
 from collections import OrderedDict
+from typing import Union
 
 import requests
 from Crypto.Cipher import AES
@@ -12,10 +13,14 @@ from crypto import public_key_encrypt
 # TODO Load private key
 class AMOService:
     def __init__(self,
-                 blockchain_endpoint,
-                 storage_endpoint,
-                 private_key: SigningKey = SigningKey.generate(curve=NIST256p)):
-        self.private_key = private_key
+                 blockchain_endpoint: str,
+                 storage_endpoint: str,
+                 private_key: Union[SigningKey, str, None]):
+        if isinstance(private_key, str):
+            self.private_key = SigningKey.from_string(bytes.fromhex(private_key), curve=NIST256p, hashfunc=sha256)
+        elif private_key is None:
+            self.private_key = SigningKey.generate(curve=NIST256p)
+
         self.public_key = self.private_key.get_verifying_key()
         self.encoded_public_key = self.public_key.to_string(encoding='uncompressed')
         self.owner = sha256(self.encoded_public_key).digest()[:20].hex().upper()
@@ -62,7 +67,7 @@ class AMOService:
     def register_parcel(self, parcel_id: str, custody: bytes) -> OrderedDict:
         tx = self._make_tx(
             'register',
-            OrderedDict([('target', parcel_id), ('custody', custody)])
+            OrderedDict([('target', parcel_id), ('custody', custody.hex())])
         )
 
         signed_tx = self._sign_tx(tx)
@@ -98,9 +103,9 @@ class AMOService:
         token = res.json()['token']
         return token
 
-    def _get_encryption_key(self):
-        # TODO make file encryption key
-        return SigningKey.from_string(sha256(self.owner.encode()).digest(), curve=NIST256p, hashfunc=sha256).to_string()
+    @staticmethod
+    def _get_encryption_key():
+        return SigningKey.generate(curve=NIST256p, hashfunc=sha256).to_string()
 
     # TODO Change for S3 backend
     def upload_parcel(self, data: bytes) -> (str, bytes):
