@@ -1,7 +1,7 @@
+from Crypto.Cipher import AES
+from Crypto.Hash import SHA256
 from ecdsa import ECDH, NIST256p, SigningKey
 from ecdsa.util import sha256
-from Crypto.Hash import SHA256
-from Crypto.Cipher import AES
 
 DEFAULT_KEY = SHA256.new(b'keyencryptionkey').digest()
 

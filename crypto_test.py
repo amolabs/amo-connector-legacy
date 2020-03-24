@@ -1,5 +1,7 @@
 import unittest
+
 from ecdsa import SigningKey, NIST256p
+
 from crypto import public_key_decrypt, public_key_encrypt
 
 

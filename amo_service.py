@@ -6,11 +6,11 @@ import requests
 from Crypto.Cipher import AES
 from ecdsa import SigningKey, NIST256p
 from ecdsa.util import sha256
+from loguru import logger
 
 from crypto import public_key_encrypt
 
 
-# TODO Load private key
 class AMOService:
     def __init__(self,
                  blockchain_endpoint: str,
@@ -36,7 +36,6 @@ class AMOService:
 
         raw_tx = json.dumps(ordered_tx, separators=(',', ':')).encode()
         signature = self.private_key.sign(raw_tx, hashfunc=sha256)
-        assert self.public_key.verify(signature, raw_tx, hashfunc=sha256)
 
         ordered_tx['signature'] = {
             'pubKey': self.encoded_public_key.hex(),
@@ -62,7 +61,13 @@ class AMOService:
     def broadcast_tx(self, signed_tx: OrderedDict):
         dumped_body = json.dumps(signed_tx).replace('"', '\\"')
         res = requests.get('{:s}/broadcast_tx_sync?tx="{}"'.format(self.blockchain_endpoint, dumped_body))
-        return res
+        res.raise_for_status()
+        tx_result = res.json()['result']
+
+        if tx_result['code'] != 0:
+            logger.error('transaction fails\n{tx_result}', tx_result=tx_result)
+            raise ValueError('transaction fails')
+        return tx_result
 
     def register_parcel(self, parcel_id: str, custody: bytes) -> OrderedDict:
         tx = self._make_tx(
@@ -107,7 +112,6 @@ class AMOService:
     def _get_encryption_key():
         return SigningKey.generate(curve=NIST256p, hashfunc=sha256).to_string()
 
-    # TODO Change for S3 backend
     def upload_parcel(self, data: bytes) -> (str, bytes):
         enc_key = self._get_encryption_key()
         custody = public_key_encrypt(self.public_key, enc_key)
