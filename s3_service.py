@@ -35,3 +35,13 @@ class S3Service:
                 ]
             }
         )
+
+    def get_tags(self, bucket_name: str, key: str):
+        res = self.client.get_object_tagging(
+            Bucket=bucket_name,
+            Key=key
+        )
+
+        tags = {tag['Key']: tag['Value'] for tag in res['TagSet']}
+
+        return tags

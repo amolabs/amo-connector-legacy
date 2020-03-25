@@ -11,20 +11,16 @@ from s3_service import S3Service
 from sqs_service import SQSService
 
 
-class AMOConnector:
-    def __init__(self, config_dir: str):
-        config = self._get_config(config_dir)
-        aws = config['aws']
+def get_config(config_dir: str):
+    with open(Path(config_dir).expanduser() / 'config.yml', 'r') as stream:
+        return load(stream, Loader=FullLoader)
 
+
+class AMOConnector:
+    def __init__(self, aws, amo):
         self.sqs = SQSService(aws['credential'], aws['sqs'])
         self.s3 = S3Service(aws['credential'], aws['s3'])
-        self.amo = AMOService(**config['amo'])
-
-    @staticmethod
-    def _get_config(config_dir: str):
-        with open(Path(config_dir).expanduser() / 'config.yml', 'r') as stream:
-            config = load(stream, Loader=FullLoader)
-        return config
+        self.amo = AMOService(**amo)
 
     def run(self):
         while True:
@@ -32,6 +28,12 @@ class AMOConnector:
             for parcel in parcels:
                 bucket, key = parcel['bucket'], parcel['key']
                 try:
+                    owned_tags = self.s3.get_tags(bucket, key)
+                    if 'parcel_id' in owned_tags:
+                        logger.info('{key} registered parcel with {parcel_id}',
+                                    key=key, parcel_id=owned_tags['parcel_id'])
+                        continue
+
                     content = self.s3.get_content(bucket, key)
 
                     parcel_id, custody = self.amo.upload_parcel(content)
@@ -60,5 +62,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    connector = AMOConnector(args.config_dir)
+    config = get_config(args.config_dir)
+
+    connector = AMOConnector(**config)
     connector.run()

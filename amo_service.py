@@ -15,11 +15,12 @@ class AMOService:
     def __init__(self,
                  blockchain_endpoint: str,
                  storage_endpoint: str,
-                 private_key: Union[SigningKey, str, None]):
+                 private_key: Union[SigningKey, str, None],
+                 http_client=requests):
         if isinstance(private_key, str):
             self.private_key = SigningKey.from_string(bytes.fromhex(private_key), curve=NIST256p, hashfunc=sha256)
         elif private_key is None:
-            self.private_key = SigningKey.generate(curve=NIST256p)
+            self.private_key = SigningKey.generate(curve=NIST256p, hashfunc=sha256)
 
         self.public_key = self.private_key.get_verifying_key()
         self.encoded_public_key = self.public_key.to_string(encoding='uncompressed')
@@ -27,6 +28,7 @@ class AMOService:
 
         self.blockchain_endpoint = blockchain_endpoint
         self.storage_endpoint = storage_endpoint
+        self.http_client = http_client
 
     def _sign_tx(self, tx: dict) -> OrderedDict:
         ordered_tx = OrderedDict()
@@ -60,7 +62,7 @@ class AMOService:
 
     def broadcast_tx(self, signed_tx: OrderedDict):
         dumped_body = json.dumps(signed_tx).replace('"', '\\"')
-        res = requests.get('{:s}/broadcast_tx_sync?tx="{}"'.format(self.blockchain_endpoint, dumped_body))
+        res = self.http_client.get('{:s}/broadcast_tx_sync?tx="{}"'.format(self.blockchain_endpoint, dumped_body))
         res.raise_for_status()
         tx_result = res.json()['result']
 
@@ -97,7 +99,7 @@ class AMOService:
         }
 
     def _get_token(self, operation: dict) -> str:
-        res = requests.post('{}/api/v1/auth'.format(self.storage_endpoint), json={
+        res = self.http_client.post('{}/api/v1/auth'.format(self.storage_endpoint), json={
             'user': self.owner,
             'operation': operation
         }, headers={
@@ -125,7 +127,7 @@ class AMOService:
             'hash': digested
         })
 
-        res = requests.post(
+        res = self.http_client.post(
             '{}/api/v1/parcels'.format(self.storage_endpoint),
             json={
                 'owner': self.owner,
