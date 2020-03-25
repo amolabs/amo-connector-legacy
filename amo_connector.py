@@ -1,9 +1,13 @@
 import argparse
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from loguru import logger
 from requests import HTTPError
+from sqlalchemy import create_engine, Column, String, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 from yaml import load, FullLoader
 
 from amo_service import AMOService
@@ -16,11 +20,38 @@ def get_config(config_dir: str):
         return load(stream, Loader=FullLoader)
 
 
+Base = declarative_base()
+
+
+class ParcelLog(Base):
+    __tablename__ = 'parcel_log'
+
+    parcel_id = Column(String(72), primary_key=True)
+    bucket_name = Column(String(256))
+    object_key = Column(String(512))
+    created_at = Column(DateTime, default=datetime.now)
+
+
 class AMOConnector:
-    def __init__(self, aws, amo):
+    def __init__(self, aws, amo, db):
         self.sqs = SQSService(aws['credential'], aws['sqs'])
-        self.s3 = S3Service(aws['credential'], aws['s3'])
+        self.s3 = S3Service(aws['credential'], aws.get('s3', {}))
         self.amo = AMOService(**amo)
+        self._load_database(db)
+
+    def _load_database(self, db):
+        self.engine = create_engine(db['host'])
+        Base.metadata.create_all(self.engine)
+        self.session = sessionmaker(bind=self.engine)()
+
+    def save_result(self, parcel_id, bucket_name, object_key):
+        result = ParcelLog(
+            parcel_id=parcel_id,
+            bucket_name=bucket_name,
+            object_key=object_key
+        )
+        self.session.add(result)
+        self.session.commit()
 
     def run(self):
         while True:
@@ -43,12 +74,16 @@ class AMOConnector:
                     logger.debug('{key} -> {result}', key=key, result=tx_result)
 
                     self.s3.add_tag(bucket, key, parcel_id)
+                    self.save_result(parcel_id, bucket, key)
                     logger.info('{key} -> {parcel_id}', key=key, parcel_id=parcel_id)
                 except HTTPError as e:
                     logger.error('{key} occurs {error} with {content}',
                                  key=key, error=e, content=e.response.content)
                 except Exception as e:
                     logger.exception('{key} failed by {error}', key=key, error=e)
+
+    def __del__(self):
+        self.session.close()
 
 
 if __name__ == '__main__':

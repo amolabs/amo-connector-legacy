@@ -9,10 +9,7 @@ class S3Service:
         self.client = boto3.client('s3', **credential)
 
     def get_content(self, bucket_name: str, key: str) -> bytes:
-        obj = self.s3.Object(
-            Bucket=bucket_name,
-            Key=key
-        )
+        obj = self.s3.Object(bucket_name, key)
 
         with io.BytesIO() as f:
             obj.download_fileobj(f)

@@ -21,6 +21,8 @@ aws:
       region_name: <REGION>
     sqs:
       url: <QUEUE_URL>
+db:
+    host: mysql+pymysql://user:password@localhost:3306/amo-storage
 ```
 
 ## Usage
