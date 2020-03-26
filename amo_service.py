@@ -80,7 +80,7 @@ class AMOService:
         signed_tx = self._sign_tx(tx)
         return signed_tx
 
-    def grant_parcel(self, parcel_id: str, grantee: str, custody: bytes):
+    def grant_parcel(self, parcel_id: str, grantee: str, custody: str):
         tx = self._make_tx(
             'grant',
             OrderedDict([('parcel_id', parcel_id), ('grantee', grantee), ('custody', custody)])
@@ -157,7 +157,7 @@ class AMOService:
             'path': '"/{}"'.format(path),
             'data': '"{}"'.format(data.replace('"', '\\"'))
         }.items())
-        res = requests.get('{}/abci_query'.format(self.blockchain_endpoint), encoded)
+        res = self.http_client.get('{}/abci_query'.format(self.blockchain_endpoint), encoded)
         res.raise_for_status()
         j = res.json()
 

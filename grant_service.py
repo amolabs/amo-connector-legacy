@@ -30,8 +30,8 @@ class RequestTx:
 
 
 class GrantService:
-    def __init__(self, amo, explorer_endpoint):
-        self.amo = AMOService(**amo)
+    def __init__(self, amo, explorer_endpoint, http_client=requests):
+        self.amo = AMOService(**amo, http_client=http_client)
         self.polling_service = None
         self.explorer_endpoint = explorer_endpoint
 
@@ -51,9 +51,9 @@ class GrantService:
 
                 custody = self.amo.query_parcel(tx.parcel_id)['custody']
 
-                grant_custody = self.amo.get_grant_custody(custody, tx.pubKey)
+                grant_custody = self.amo.get_grant_custody(bytes.fromhex(custody), bytes.fromhex(tx.pubKey))
 
-                grant_tx = self.amo.grant_parcel(tx.parcel_id, tx.grantee, grant_custody)
+                grant_tx = self.amo.grant_parcel(tx.parcel_id, tx.grantee, grant_custody.hex())
                 self.amo.broadcast_tx(grant_tx)
             except Exception as e:
                 continue
