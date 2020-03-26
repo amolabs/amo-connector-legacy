@@ -82,7 +82,7 @@ class AMOConnector:
                 except Exception as e:
                     logger.exception('{key} failed by {error}', key=key, error=e)
 
-    def __del__(self):
+    def __exit__(self, *args, **kwargs):
         self.session.close()
 
 
@@ -95,9 +95,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_dir', type=str, default='~/.amo-connector')
 
-    args = parser.parse_args()
+    parsed_args = parser.parse_args()
 
-    config = get_config(args.config_dir)
+    config = get_config(parsed_args.config_dir)
 
     connector = AMOConnector(**config)
     connector.run()

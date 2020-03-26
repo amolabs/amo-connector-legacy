@@ -4,11 +4,11 @@ from typing import Union
 
 import requests
 from Crypto.Cipher import AES
-from ecdsa import SigningKey, NIST256p
+from ecdsa import SigningKey, NIST256p, VerifyingKey
 from ecdsa.util import sha256
 from loguru import logger
 
-from crypto import public_key_encrypt
+from crypto import public_key_encrypt, public_key_decrypt
 
 
 class AMOService:
@@ -141,3 +141,33 @@ class AMOService:
 
         res.raise_for_status()
         return res.json()['id'], custody
+
+    def get_grant_custody(self, encrypted_custody: bytes, grantee_public_key: bytes) -> bytes:
+        decrypted = public_key_decrypt(self.private_key, encrypted_custody)
+        grant_custody = public_key_encrypt(
+            VerifyingKey.from_string(grantee_public_key, curve=NIST256p, hashfunc=sha256, validate_point=True),
+            decrypted
+        )
+
+        return grant_custody
+
+    def _abci_query(self, path, params):
+        data = json.dumps(params, separators=(',', ':'))
+        encoded = "&".join("{}={}".format(k, v) for k, v in {
+            'path': '"/{}"'.format(path),
+            'data': '"{}"'.format(data.replace('"', '\\"'))
+        }.items())
+        res = requests.get('{}/abci_query'.format(self.blockchain_endpoint), encoded)
+        res.raise_for_status()
+        j = res.json()
+
+        if 'error' in j:
+            raise ValueError('Invalid ABCI query requests /{} with {}'.format(path, data))
+
+        if j['result']['response']['code'] is not 0:
+            raise ValueError('ABCI query failed: {}'.format(j['result']['response']['log']))
+
+        return j['result']['response']['value']
+
+    def query_parcel(self, parcel_id):
+        return self._abci_query('parcel', parcel_id)
