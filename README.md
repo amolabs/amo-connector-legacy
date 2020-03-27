@@ -3,14 +3,14 @@
 - Receive file creation event from AWS SQS
     - AMO connector supposes events are created by AWS Lambda triggered by S3.
     - Message from SQS must contains `bucket` and `key` in `responsePayload`.
-- Download file content from AWS S3
+- Download file contents from AWS S3
 - Upload parcel to AMO storage
     - AMO connector encrypts data from above step with custody.
 - Register parcel to AMO blockchain
 
 ## Configuration
 
-AMO connector uses [yaml](https://github.com/yaml/pyyaml) for configuration
+AMO connector uses [yaml](https://github.com/yaml/pyyaml) for configuration.
 
 ### amo-connector.yml
 
@@ -30,7 +30,7 @@ db:
     host: mysql+pymysql://<USER>:<PASSWORD>@localhost:3306/amo-storage
 ```
 
-AMO connector needs those permissions:
+AMO connector needs these permissions:
 - S3, Full access
 - SQS, Full: Read
 
