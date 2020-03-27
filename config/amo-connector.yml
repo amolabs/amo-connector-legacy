@@ -1,0 +1,13 @@
+amo:
+    blockchain_endpoint: http://...
+    storage_endpoint: http://amo-storage-server:5000
+    private_key: <HEX ENCODED 32 BYTES>
+aws:
+    credential:
+      aws_access_key_id: <ACCESS_KEY>
+      aws_secret_access_key: <SERECT_KEY>
+      region_name: <REGION>
+    sqs:
+      url: <QUEUE_URL>
+db:
+    host: mysql+pymysql://<USER>:<PASSWORD>@amo-storage-db/amo-storage

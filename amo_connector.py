@@ -16,7 +16,7 @@ from sqs_service import SQSService
 
 
 def get_config(config_dir: str):
-    with open(Path(config_dir).expanduser() / 'config.yml', 'r') as stream:
+    with open(Path(config_dir).expanduser() / 'amo-connector.yml', 'r') as stream:
         return load(stream, Loader=FullLoader)
 
 

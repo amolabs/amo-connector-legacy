@@ -1,0 +1,47 @@
+version: "3"
+
+services:
+  mariadb:
+    container_name: amo-storage-db
+    image: mariadb:10.5.1-bionic
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: amo-storage
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mariadb:/var/lib/mysql
+    ports:
+      - "3306:3306"
+  redis:
+    container_name: amo-storage-redis
+    image: redis:5.0.5
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis:/data/redis
+  storage:
+    container_name: amo-storage-server
+    image: amo-storage:latest
+    volumes:
+      - ${CONFIG_DIR}:/app/config:z
+    entrypoint: python3
+    command: main.py --config_dir /app/config --host 0.0.0.0 --port 5000
+    depends_on:
+      - redis
+      - mariadb
+    restart: on-failure
+  connector:
+    container_name: amo-connector
+    build: .
+    volumes:
+      - ${CONFIG_DIR}:/app/config:z
+    entrypoint: python3
+    command: amo_connector.py --config_dir /app/config
+    depends_on:
+      - mariadb
+      - storage
+    restart: on-failure
+volumes:
+  mariadb:
+  redis:
