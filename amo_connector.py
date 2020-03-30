@@ -1,4 +1,5 @@
 import argparse
+import stat
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -16,7 +17,15 @@ from sqs_service import SQSService
 
 
 def get_config(config_dir: str):
-    with open(Path(config_dir).expanduser() / 'amo-connector.yml', 'r') as stream:
+    path = Path(config_dir).expanduser() / 'amo-connector.yml'
+    with open(path, 'r') as stream:
+        permissions = path.stat().st_mode
+        owner_permissions = stat.S_IRUSR | stat.S_IWUSR
+        if permissions ^ owner_permissions != 0:
+            raise PermissionError(
+                "Unprotected config file. Permissions {} for 'amo-connector.yml' are too open".format(
+                    stat.filemode(path.stat().st_mode)))
+
         return load(stream, Loader=FullLoader)
 
 

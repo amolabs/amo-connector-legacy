@@ -11,6 +11,7 @@
 ## Configuration
 
 AMO connector uses [yaml](https://github.com/yaml/pyyaml) for configuration.
+Permissions of config file must be `600` for security.
 
 ### amo-connector.yml
 
